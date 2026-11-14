@@ -1,0 +1,53 @@
+{
+	"geode": "5.0.0",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "yourname.noclip-speed-fly",
+	"name": "Noclip, Speed & Fly",
+	"version": "v1.3.1",
+	"developer": "YourName",
+	"description": "Single-player cheat with an in-game menu (noclip, speed, fly) and a level generator for the editor.",
+	"settings": {
+		"noclip": {
+			"type": "bool",
+			"name": "Noclip",
+			"description": "Don't die from obstacles.",
+			"default": true
+		},
+		"fly": {
+			"type": "bool",
+			"name": "Fly",
+			"description": "Hold tap/click to fly up in cube mode.",
+			"default": true
+		},
+		"fly-power": {
+			"type": "float",
+			"name": "Fly power",
+			"description": "How fast you rise while holding.",
+			"default": 9.0,
+			"min": 3.0,
+			"max": 16.0,
+			"control": { "slider": true }
+		},
+		"speed": {
+			"type": "float",
+			"name": "Game speed",
+			"description": "1.0 is normal speed.",
+			"default": 1.0,
+			"min": 0.1,
+			"max": 2.0,
+			"control": { "slider": true }
+		},
+		"gen-length": {
+			"type": "int",
+			"name": "Generated level length",
+			"description": "Length of the generated level in grid cells (30 units each).",
+			"default": 150,
+			"min": 30,
+			"max": 1000
+		}
+	}
