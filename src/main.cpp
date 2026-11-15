@@ -7,79 +7,14 @@
 
 using namespace geode::prelude;
 
-static constexpr float SPEED_MIN = 0.1f;
-static constexpr float SPEED_MAX = 2.0f;
-
-// ---------- Menu popup (touch friendly) ----------
-class CheatPopup : public geode::Popup<> {
-protected:
-	bool setup() override {
-		this->setTitle("Cheats");
-
-		auto addToggle = [this](char const* text, char const* key, SEL_MenuHandler cb, float y) {
-			auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-			label->setScale(0.6f);
-			m_mainLayer->addChildAtPosition(label, Anchor::Center, {-45.f, y});
-
-			auto toggle = CCMenuItemToggler::createWithStandardSprites(this, cb, 0.8f);
-			toggle->toggle(Mod::get()->getSettingValue<bool>(key));
-			m_buttonMenu->addChildAtPosition(toggle, Anchor::Center, {80.f, y});
-		};
-
-		addToggle("Noclip", "noclip", menu_selector(CheatPopup::onNoclip), 40.f);
-		addToggle("Fly", "fly", menu_selector(CheatPopup::onFly), 5.f);
-
-		m_speedLabel = CCLabelBMFont::create("", "bigFont.fnt");
-		m_speedLabel->setScale(0.5f);
-		m_mainLayer->addChildAtPosition(m_speedLabel, Anchor::Center, {0.f, -30.f});
-
-		auto speed = static_cast<float>(Mod::get()->getSettingValue<double>("speed"));
-		m_slider = Slider::create(this, menu_selector(CheatPopup::onSpeed), 0.8f);
-		m_slider->setValue((speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN));
-		m_buttonMenu->addChildAtPosition(m_slider, Anchor::Center, {0.f, -55.f});
-		this->updateSpeedLabel(speed);
-
-		return true;
-	}
-
-	CCLabelBMFont* m_speedLabel = nullptr;
-	Slider* m_slider = nullptr;
-
-	void updateSpeedLabel(float speed) {
-		m_speedLabel->setString(fmt::format("Speed: {:.2f}x", speed).c_str());
-	}
-
-	void onNoclip(CCObject* sender) {
-		auto t = static_cast<CCMenuItemToggler*>(sender);
-		Mod::get()->setSettingValue<bool>("noclip", !t->isToggled());
-	}
-
-	void onFly(CCObject* sender) {
-		auto t = static_cast<CCMenuItemToggler*>(sender);
-		Mod::get()->setSettingValue<bool>("fly", !t->isToggled());
-	}
-
-	void onSpeed(CCObject* sender) {
-		float v = m_slider->getThumb()->getValue();
-		float speed = SPEED_MIN + v * (SPEED_MAX - SPEED_MIN);
-		Mod::get()->setSettingValue<double>("speed", speed);
-		CCDirector::get()->getScheduler()->setTimeScale(speed);
-		this->updateSpeedLabel(speed);
-	}
-
-public:
-	static CheatPopup* create() {
-		auto ret = new CheatPopup();
-		if (ret->initAnchored(260.f, 200.f)) {
-			ret->autorelease();
-			return ret;
+$execute {
+	listenForSettingChanges<double>("speed", [](double value) {
+		if (PlayLayer::get()) {
+			CCDirector::get()->getScheduler()->setTimeScale(static_cast<float>(value));
 		}
-		delete ret;
-		return nullptr;
-	}
-};
+	});
+}
 
-// ---------- Button in the pause menu ----------
 class $modify(CheatPause, PauseLayer) {
 	void customSetup() {
 		PauseLayer::customSetup();
@@ -92,7 +27,6 @@ class $modify(CheatPause, PauseLayer) {
 		auto btn = CCMenuItemSpriteExtra::create(
 			icon, this, menu_selector(CheatPause::onCheats)
 		);
-
 		auto menu = CCMenu::create();
 		menu->addChild(btn);
 		menu->setPosition({winSize.width - 60.f, 30.f});
@@ -100,11 +34,10 @@ class $modify(CheatPause, PauseLayer) {
 	}
 
 	void onCheats(CCObject*) {
-		if (auto popup = CheatPopup::create()) popup->show();
+		openSettingsPopup(Mod::get(), false);
 	}
 };
 
-// ---------- Level generator (editor pause menu) ----------
 class $modify(GenEditorPause, EditorPauseLayer) {
 	void customSetup() {
 		EditorPauseLayer::customSetup();
@@ -182,7 +115,6 @@ class $modify(GenEditorPause, EditorPauseLayer) {
 	}
 };
 
-// ---------- Cheat logic ----------
 class $modify(CheatLayer, PlayLayer) {
 	bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
 		if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
@@ -227,4 +159,7 @@ class $modify(FlyPlayer, PlayerObject) {
 		if (!Mod::get()->getSettingValue<bool>("fly")) return;
 		if (m_isShip || m_isBird || m_isDart || m_isSwing) return;
 
-		auto power = static_cast<float>(Mod::get()->getSettingValue
+		auto power = static_cast<float>(Mod::get()->getSettingValue<double>("fly-power"));
+		m_yVelocity = m_isUpsideDown ? -power : power;
+	}
+};
