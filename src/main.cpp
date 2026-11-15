@@ -2,6 +2,7 @@
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
+#include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/EditorPauseLayer.hpp>
 #include <algorithm>
 #include <cmath>
@@ -64,48 +65,66 @@ protected:
 	CCLabelBMFont* m_powerLabel = nullptr;
 
 	bool init() {
-		if (!Popup::init(280.f, 300.f)) return false;
+		bool inLevel = PlayLayer::get() != nullptr;
+		float h = inLevel ? 330.f : 245.f;
+		if (!Popup::init(280.f, h)) return false;
 		this->setTitle("Cheats");
 
-		auto addToggle = [this](char const* text, bool state, SEL_MenuHandler cb, float y) {
+		float y = h / 2.f - 62.f;
+		auto next = [&y]() {
+			float cur = y;
+			y -= 27.f;
+			return cur;
+		};
+
+		auto addToggle = [this](char const* text, bool state, SEL_MenuHandler cb, float ty) {
 			auto label = CCLabelBMFont::create(text, "bigFont.fnt");
 			label->setScale(0.55f);
-			m_mainLayer->addChildAtPosition(label, Anchor::Center, {-50.f, y});
+			m_mainLayer->addChildAtPosition(label, Anchor::Center, {-50.f, ty});
 
 			auto toggle = CCMenuItemToggler::createWithStandardSprites(this, cb, 0.65f);
 			toggle->toggle(state);
-			m_buttonMenu->addChildAtPosition(toggle, Anchor::Center, {80.f, y});
+			m_buttonMenu->addChildAtPosition(toggle, Anchor::Center, {80.f, ty});
 		};
 
-		auto addStepper = [this](CCLabelBMFont*& label, SEL_MenuHandler down, SEL_MenuHandler up, float y) {
+		auto addStepper = [this](CCLabelBMFont*& label, SEL_MenuHandler down, SEL_MenuHandler up, float ty) {
 			label = CCLabelBMFont::create("", "bigFont.fnt");
 			label->setScale(0.5f);
-			m_mainLayer->addChildAtPosition(label, Anchor::Center, {0.f, y});
+			m_mainLayer->addChildAtPosition(label, Anchor::Center, {0.f, ty});
 
 			auto minus = ButtonSprite::create("-");
 			minus->setScale(0.6f);
 			auto minusBtn = CCMenuItemSpriteExtra::create(minus, this, down);
-			m_buttonMenu->addChildAtPosition(minusBtn, Anchor::Center, {-100.f, y});
+			m_buttonMenu->addChildAtPosition(minusBtn, Anchor::Center, {-100.f, ty});
 
 			auto plus = ButtonSprite::create("+");
 			plus->setScale(0.6f);
 			auto plusBtn = CCMenuItemSpriteExtra::create(plus, this, up);
-			m_buttonMenu->addChildAtPosition(plusBtn, Anchor::Center, {100.f, y});
+			m_buttonMenu->addChildAtPosition(plusBtn, Anchor::Center, {100.f, ty});
 		};
 
-		addToggle("Noclip", Mod::get()->getSettingValue<bool>("noclip"), menu_selector(CheatPopup::onNoclip), 92.f);
-		addToggle("Fly", Mod::get()->getSettingValue<bool>("fly"), menu_selector(CheatPopup::onFly), 65.f);
-		addToggle("Mini", g_mini, menu_selector(CheatPopup::onMini), 38.f);
-		addToggle("Flip gravity", g_flip, menu_selector(CheatPopup::onFlip), 11.f);
-		addToggle("Platformer", g_plat, menu_selector(CheatPopup::onPlat), -16.f);
-		addStepper(m_modeLabel, menu_selector(CheatPopup::onModeDown), menu_selector(CheatPopup::onModeUp), -43.f);
-		addStepper(m_speedLabel, menu_selector(CheatPopup::onSpeedDown), menu_selector(CheatPopup::onSpeedUp), -70.f);
-		addStepper(m_powerLabel, menu_selector(CheatPopup::onPowerDown), menu_selector(CheatPopup::onPowerUp), -97.f);
+		addToggle("Noclip", Mod::get()->getSettingValue<bool>("noclip"), menu_selector(CheatPopup::onNoclip), next());
+		addToggle("Fly", Mod::get()->getSettingValue<bool>("fly"), menu_selector(CheatPopup::onFly), next());
+		if (inLevel) {
+			addToggle("Mini", g_mini, menu_selector(CheatPopup::onMini), next());
+			addToggle("Flip gravity", g_flip, menu_selector(CheatPopup::onFlip), next());
+			addToggle("Platformer", g_plat, menu_selector(CheatPopup::onPlat), next());
+			addStepper(m_modeLabel, menu_selector(CheatPopup::onModeDown), menu_selector(CheatPopup::onModeUp), next());
+		}
+		addStepper(m_speedLabel, menu_selector(CheatPopup::onSpeedDown), menu_selector(CheatPopup::onSpeedUp), next());
+		addStepper(m_powerLabel, menu_selector(CheatPopup::onPowerDown), menu_selector(CheatPopup::onPowerUp), next());
+
+		if (!inLevel) {
+			auto hint = CCLabelBMFont::create("Player modes: open from the pause screen", "bigFont.fnt");
+			hint->setScale(0.3f);
+			m_mainLayer->addChildAtPosition(hint, Anchor::Center, {0.f, y + 8.f});
+			y -= 22.f;
+		}
 
 		auto allSpr = ButtonSprite::create("All settings");
 		allSpr->setScale(0.65f);
 		auto allBtn = CCMenuItemSpriteExtra::create(allSpr, this, menu_selector(CheatPopup::onAllSettings));
-		m_buttonMenu->addChildAtPosition(allBtn, Anchor::Center, {0.f, -126.f});
+		m_buttonMenu->addChildAtPosition(allBtn, Anchor::Center, {0.f, y - 6.f});
 
 		this->refresh();
 		return true;
@@ -114,7 +133,7 @@ protected:
 	void refresh() {
 		auto speed = Mod::get()->getSettingValue<double>("speed");
 		auto power = Mod::get()->getSettingValue<double>("fly-power");
-		m_modeLabel->setString(fmt::format("Mode: {}", MODE_NAMES[g_mode]).c_str());
+		if (m_modeLabel) m_modeLabel->setString(fmt::format("Mode: {}", MODE_NAMES[g_mode]).c_str());
 		m_speedLabel->setString(fmt::format("Speed: {:.1f}x", speed).c_str());
 		m_powerLabel->setString(fmt::format("Fly power: {:.0f}", power).c_str());
 	}
@@ -190,6 +209,30 @@ public:
 	}
 };
 
+// ---------- Main menu ----------
+class $modify(CheatMenu, MenuLayer) {
+	bool init() {
+		if (!MenuLayer::init()) return false;
+
+		auto winSize = CCDirector::get()->getWinSize();
+		auto btn = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("Mod menu"), this, menu_selector(CheatMenu::onCheats)
+		);
+		btn->setScale(0.6f);
+
+		auto menu = CCMenu::create();
+		menu->addChild(btn);
+		menu->setPosition({70.f, winSize.height - 30.f});
+		this->addChild(menu);
+		return true;
+	}
+
+	void onCheats(CCObject*) {
+		if (auto popup = CheatPopup::create()) popup->show();
+	}
+};
+
+// ---------- Pause screen ----------
 class $modify(CheatPause, PauseLayer) {
 	void customSetup() {
 		PauseLayer::customSetup();
@@ -211,20 +254,34 @@ class $modify(CheatPause, PauseLayer) {
 	}
 };
 
+// ---------- Editor pause screen ----------
 class $modify(GenEditorPause, EditorPauseLayer) {
 	void customSetup() {
 		EditorPauseLayer::customSetup();
 
 		auto winSize = CCDirector::get()->getWinSize();
-		auto btn = CCMenuItemSpriteExtra::create(
+
+		auto genBtn = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("Generate"), this, menu_selector(GenEditorPause::onGenerate)
 		);
-		btn->setScale(0.7f);
+		genBtn->setScale(0.7f);
+		genBtn->setPosition({0.f, 0.f});
+
+		auto cheatBtn = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("Mod menu"), this, menu_selector(GenEditorPause::onCheats)
+		);
+		cheatBtn->setScale(0.7f);
+		cheatBtn->setPosition({0.f, -35.f});
 
 		auto menu = CCMenu::create();
-		menu->addChild(btn);
+		menu->addChild(genBtn);
+		menu->addChild(cheatBtn);
 		menu->setPosition({70.f, winSize.height - 40.f});
 		this->addChild(menu);
+	}
+
+	void onCheats(CCObject*) {
+		if (auto popup = CheatPopup::create()) popup->show();
 	}
 
 	void onGenerate(CCObject*) {
@@ -286,6 +343,7 @@ class $modify(GenEditorPause, EditorPauseLayer) {
 	}
 };
 
+// ---------- Cheat logic ----------
 class $modify(CheatLayer, PlayLayer) {
 	bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
 		if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
