@@ -20,16 +20,14 @@ class $modify(CheatPause, PauseLayer) {
 		PauseLayer::customSetup();
 
 		auto winSize = CCDirector::get()->getWinSize();
-		CCNode* icon = CCSprite::create("menu-icon.png"_spr);
-		if (icon) icon->setScale(0.35f);
-		else icon = ButtonSprite::create("Cheats");
-
 		auto btn = CCMenuItemSpriteExtra::create(
-			icon, this, menu_selector(CheatPause::onCheats)
+			ButtonSprite::create("Cheats"), this, menu_selector(CheatPause::onCheats)
 		);
+		btn->setScale(0.8f);
+
 		auto menu = CCMenu::create();
 		menu->addChild(btn);
-		menu->setPosition({winSize.width - 60.f, 30.f});
+		menu->setPosition({winSize.width / 2.f, 20.f});
 		this->addChild(menu);
 	}
 
@@ -43,16 +41,14 @@ class $modify(GenEditorPause, EditorPauseLayer) {
 		EditorPauseLayer::customSetup();
 
 		auto winSize = CCDirector::get()->getWinSize();
-		CCNode* icon = CCSprite::create("menu-icon.png"_spr);
-		if (icon) icon->setScale(0.35f);
-		else icon = ButtonSprite::create("Generate");
-
 		auto btn = CCMenuItemSpriteExtra::create(
-			icon, this, menu_selector(GenEditorPause::onGenerate)
+			ButtonSprite::create("Generate"), this, menu_selector(GenEditorPause::onGenerate)
 		);
+		btn->setScale(0.7f);
+
 		auto menu = CCMenu::create();
 		menu->addChild(btn);
-		menu->setPosition({60.f, winSize.height - 40.f});
+		menu->setPosition({70.f, winSize.height - 40.f});
 		this->addChild(menu);
 	}
 
